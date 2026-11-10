@@ -11,6 +11,18 @@ Multi-tenant NestJS + Prisma + MariaDB API, React + Ant Design web app.
 - pnpm (enable via `corepack enable` — version pinned in `package.json`)
 - MariaDB or MySQL 8 reachable via `DATABASE_URL`
 
+## Quick start on Windows
+
+Needs Node.js >= 22.18 and MariaDB/MySQL (e.g. XAMPP). Double-click **`start-local.bat`**. It:
+
+1. checks Node.js and pnpm;
+2. creates `.env` and `apps/api/.env` from the examples when they are missing;
+3. checks the database server, and starts XAMPP's MariaDB (`C:\xampp` or `D:\xampp`) when it is stopped;
+4. installs packages, creates the database, applies the migrations and the base seed;
+5. starts the API (:3001) and the web app (:5173), and opens http://localhost:5173.
+
+The first time it also loads a demo company: sign in with `demo@erp.local` / `Demo12345`. Run `start-local.bat -Demo` to load it into an existing database. Ctrl+C stops the API and the web app.
+
 ## Setup
 
 ```bash

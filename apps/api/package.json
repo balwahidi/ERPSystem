@@ -13,6 +13,7 @@
     "prisma": "prisma",
     "seed": "tsx prisma/seed.ts",
     "demo:seed": "tsx scripts/demo-seed.mts",
+    "db:create": "tsx scripts/create-db.mts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
