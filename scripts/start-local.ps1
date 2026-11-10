@@ -154,15 +154,29 @@ Step 'Installing packages (the first time takes a few minutes)'
 if ($LASTEXITCODE -ne 0) { Fail 'pnpm install failed. See the messages above.' }
 
 Step 'Preparing the database'
-$created = & pnpm -C apps/api -s db:create
+$created = & pnpm -C apps/api -s exec tsx scripts/create-db.mts
 if ($LASTEXITCODE -ne 0) { Fail 'Could not create the database. Check DATABASE_URL in apps\api\.env.' }
 $created | ForEach-Object { Write-Host $_ }
 $fresh = [bool](@($created) -match ' created$')
 
 & pnpm -C apps/api exec prisma migrate deploy
 if ($LASTEXITCODE -ne 0) { Fail 'The database migrations failed. See the messages above.' }
-& pnpm -C apps/api -s seed
-if ($LASTEXITCODE -ne 0) { Fail 'The base data (plans, roles) could not be written. See the messages above.' }
+# Older copies of prisma/seed.ts keep running after writing (the pool stays open): stop it once it reports success.
+$seedOut = Join-Path $env:TEMP 'erp-start-seed.log'
+$seedErr = Join-Path $env:TEMP 'erp-start-seed.err.log'
+$seed = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', 'pnpm -C apps/api -s seed' -NoNewWindow -PassThru -RedirectStandardOutput $seedOut -RedirectStandardError $seedErr
+$deadline = (Get-Date).AddMinutes(2)
+while (-not $seed.HasExited) {
+  if ((Test-Path $seedOut) -and (Select-String -Path $seedOut -Pattern 'seed complete' -SimpleMatch -Quiet)) { break }
+  if ((Get-Date) -gt $deadline) { break }
+  Start-Sleep -Milliseconds 500
+}
+if (-not $seed.HasExited) { & taskkill.exe /PID $seed.Id /T /F | Out-Null }
+Get-Content $seedOut -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+if (-not (Select-String -Path $seedOut -Pattern 'seed complete' -SimpleMatch -Quiet)) {
+  Get-Content $seedErr -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+  Fail 'The base data (plans, roles) could not be written. See the messages above.'
+}
 
 # ---------------------------------------------------------------- ports
 foreach ($port in @(3001, 5173)) {
